@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleLogin() {
     setLoading(true)
@@ -40,8 +38,7 @@ export default function LoginPage() {
       delivery: '/delivery',
     }
 
-    const destination = roleRedirects[profile?.role] ?? '/login'
-    router.push(destination)
+    window.location.href = roleRedirects[profile?.role] ?? '/login'
   }
 
   return (
@@ -60,7 +57,6 @@ export default function LoginPage() {
         borderRadius: 14,
         padding: 32,
       }}>
-
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             width: 48,

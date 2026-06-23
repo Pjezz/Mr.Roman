@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ══════════════════════════════════════════
+   TOKENS — MODO CLARO
+══════════════════════════════════════════ */
+[data-theme="light"] {
+  /* Fondos */
+  --bg:          #F7F7F5;
+  --surface:     #FFFFFF;
+  --surface-2:   #FCFCFB;
+
+  /* Bordes */
+  --border:      #E5E4E0;
+  --border-2:    #D4D3CE;
+
+  /* Texto */
+  --text-1:      #1C1C1A;
+  --text-2:      #57564F;
+  --text-3:      #8E8C84;
+
+  /* Primario — naranja Mr. Roman */
+  --primary:        #E8580A;
+  --primary-hover:  #CC4D08;
+  --primary-bg:     #FDEEE6;
+
+  /* Semánticos */
+  --success:     #15803D;
+  --success-bg:  #E7F2EB;
+  --warning:     #B45309;
+  --warning-bg:  #F7EEDF;
+  --danger:      #991B1B;
+  --danger-bg:   #F6E7E4;
+  --info:        #6366F1;
+  --info-bg:     #ECEDFB;
+
+  /* Acento para precios y cantidades */
+  --accent:      #E8580A;
+
+  /* Timer */
+  --timer-ok:    #B45309;
+  --timer-warn:  #DC2626;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ══════════════════════════════════════════
+   TOKENS — MODO OSCURO
+══════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Fondos */
+  --bg:          #18181B;
+  --surface:     #27272A;
+  --surface-2:   #323237;
+
+  /* Bordes */
+  --border:      #3F3F46;
+  --border-2:    #52525B;
+
+  /* Texto */
+  --text-1:      #FAFAF9;
+  --text-2:      #A1A1AA;
+  --text-3:      #71717A;
+
+  /* Primario */
+  --primary:        #EB6320;
+  --primary-hover:  #F2722E;
+  --primary-bg:     #2A1D15;
+
+  /* Semánticos */
+  --success:     #34D399;
+  --success-bg:  #15271E;
+  --warning:     #FBBF24;
+  --warning-bg:  #2A2415;
+  --danger:      #F87171;
+  --danger-bg:   #2A1818;
+  --info:        #818CF8;
+  --info-bg:     #1F1F2E;
+
+  /* Acento */
+  --accent:      #EB6320;
+
+  /* Timer */
+  --timer-ok:    #FBBF24;
+  --timer-warn:  #F87171;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base body ── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utilidades ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Fuente mono para IDs, timers, precios ── */
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
