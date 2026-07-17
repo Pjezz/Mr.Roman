@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import Topbar from '@/components/shared/Topbar'
 import SalesDashboard from '@/components/owner/SalesDashboard'
 import InventoryAlerts from '@/components/owner/InventoryAlerts'
+// Panel de gráficas personalizables (ventas / pizzas / proyecciones)
+import AnalyticsCharts from '@/components/owner/AnalyticsCharts'
 
 export default async function OwnerPage() {
   const supabase = await createClient()
@@ -27,6 +29,9 @@ export default async function OwnerPage() {
           <SalesDashboard />
           <InventoryAlerts />
         </div>
+        {/* Gráficas personalizables del owner: botón "Gráficas" que
+            despliega los apartados Ventas / Pizzas / Proyecciones */}
+        <AnalyticsCharts />
       </div>
     </>
   )

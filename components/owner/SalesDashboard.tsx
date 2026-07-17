@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+// Helpers de pago: soportan el pago compuesto (efectivo + tarjeta)
+import { cashPortion, cardPortion } from '@/lib/payments'
 import {
   startOfDay, endOfDay,
   startOfWeek, endOfWeek,
@@ -43,7 +45,7 @@ export default function SalesDashboard() {
 
     const { data: orders } = await supabase
       .from('orders')
-      .select('total, payment_method, items:order_items(quantity, product:products(name))')
+      .select('total, payment_method, payment_cash_amount, payment_card_amount, items:order_items(quantity, product:products(name))')
       .eq('status', 'delivered')
       .gte('confirmed_at', from.toISOString())
       .lte('confirmed_at', to.toISOString())
@@ -51,8 +53,9 @@ export default function SalesDashboard() {
     if (!orders) { setLoading(false); return }
 
     const total_revenue = orders.reduce((acc, o) => acc + o.total, 0)
-    const cash_total = orders.filter((o) => o.payment_method === 'cash').reduce((acc, o) => acc + o.total, 0)
-    const card_total = orders.filter((o) => o.payment_method === 'card').reduce((acc, o) => acc + o.total, 0)
+    // Con pago compuesto, cada orden aporta su porción a cada método
+    const cash_total = orders.reduce((acc, o) => acc + cashPortion(o), 0)
+    const card_total = orders.reduce((acc, o) => acc + cardPortion(o), 0)
     const avg_ticket = orders.length > 0 ? total_revenue / orders.length : 0
 
     const productCount: Record<string, number> = {}

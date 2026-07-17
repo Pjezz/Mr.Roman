@@ -10,7 +10,9 @@ interface Props {
   sellerId: string
 }
 
-const STEPS = ['Cliente', 'Productos', 'Confirmación']
+// El paso 1 ahora arranca escogiendo la MODALIDAD de la orden
+// (pick up, domicilio, plataformas o venta rápida) antes del cliente
+const STEPS = ['Modalidad', 'Productos', 'Confirmación']
 
 export default function OrderWizard({ sellerId }: Props) {
   const { step, resetDraft } = useOrderStore()

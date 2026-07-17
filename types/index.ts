@@ -7,9 +7,16 @@ export type OrderStatus =
   | 'in_delivery'
   | 'delivered'
 
-export type OrderType = 'delivery' | 'pickup'
+// 'platform' = pedidos que entran por apps de delivery externas (PedidosYa, etc.)
+export type OrderType = 'delivery' | 'pickup' | 'platform'
 
-export type PaymentMethod = 'cash' | 'card'
+// 'mixed' = pago compuesto (una parte en efectivo y otra con tarjeta)
+export type PaymentMethod = 'cash' | 'card' | 'mixed'
+
+// Tipo de descuento de una oferta:
+// 'percent' = porcentaje sobre el precio unitario del producto
+// 'fixed'   = cantidad fija en Quetzales descontada por unidad
+export type OfferDiscountType = 'percent' | 'fixed'
 
 export type InventoryLogType =
   | 'physical_count'
@@ -145,9 +152,38 @@ export interface InventoryLog {
   created_at: string
 }
 
+/**
+ * Oferta creada por el owner. Se aplica SIEMPRE a nivel de item (producto),
+ * nunca a la orden completa. Si un combo tiene la oferta, el descuento se
+ * aplica sobre el precio unitario de ese combo (que es un solo item).
+ */
+export interface Offer {
+  id: string
+  name: string                       // Nombre visible de la oferta (ej. "2x1 Martes")
+  product_id: string                 // Producto al que aplica el descuento
+  discount_type: OfferDiscountType   // 'percent' | 'fixed'
+  discount_value: number             // % (0-100) o monto fijo en Q por unidad
+  enabled: boolean                   // Habilitada / deshabilitada por el owner
+  created_by: string | null          // id del usuario owner que la creó
+  created_at: string
+  product?: Product                  // Relación embebida (join con products)
+}
+
+/**
+ * Servicio de delivery externo (PedidosYa, UberEats, etc.).
+ * El owner puede agregar y borrar servicios desde su dashboard.
+ */
+export interface DeliveryPlatform {
+  id: string
+  name: string        // Nombre del servicio (ej. "PedidosYa")
+  active: boolean     // Permite ocultarlo sin borrarlo
+  created_at: string
+}
+
 export interface Order {
   id: string
-  client_id: string
+  // client_id ahora puede ser null: las órdenes de "venta rápida" no llevan cliente
+  client_id: string | null
   seller_id: string
   address_id: string | null
   type: OrderType
@@ -156,6 +192,20 @@ export interface Order {
   delivery_fee: number
   total: number
   payment_method: PaymentMethod
+  // ── Pago compuesto ──
+  // Cuando payment_method === 'mixed', estos campos indican cuánto se pagó
+  // con cada método. Para 'cash' o 'card' puros pueden venir con el total
+  // o quedar en null (compatibilidad con órdenes antiguas).
+  payment_cash_amount: number | null
+  payment_card_amount: number | null
+  // ── Plataformas de delivery ──
+  // Solo se llena cuando type === 'platform'
+  platform_id: string | null
+  platform?: DeliveryPlatform
+  // ── Venta rápida ──
+  is_quick_sale: boolean
+  // NIT usado para facturar esta orden (se pregunta al finalizar, excepto plataformas)
+  nit: string | null
   pizzas_completed: number
   order_number: number | null
   confirmed_at: string
@@ -173,8 +223,11 @@ export interface OrderItem {
   order_id: string
   product_id: string
   quantity: number
-  unit_price: number
+  unit_price: number       // Precio ORIGINAL por unidad (sin descuento)
   extras_total: number
+  // ── Oferta aplicada a ESTE item (descuento por unidad, no por orden) ──
+  offer_id: string | null
+  discount_amount: number  // Q descontados POR UNIDAD (0 si no hubo oferta)
   product?: Product
   extras?: OrderItemExtra[]
 }

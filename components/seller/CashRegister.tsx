@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
+// Helpers de pago: soportan el pago compuesto (efectivo + tarjeta)
+import { cashPortion, cardPortion, paymentLabel } from '@/lib/payments'
 import { es } from 'date-fns/locale'
 
 interface CashSession {
@@ -44,7 +46,7 @@ export default function CashRegister({ userId }: Props) {
     if (data) {
       const { data: ordersData } = await supabase
         .from('orders')
-        .select('id, total, payment_method, client:clients(name), items:order_items(quantity, product:products(name))')
+        .select('id, total, payment_method, payment_cash_amount, payment_card_amount, client:clients(name), items:order_items(quantity, product:products(name))')
         .eq('status', 'delivered')
         .gte('confirmed_at', data.opened_at)
         .order('created_at', { ascending: false })
@@ -75,8 +77,9 @@ export default function CashRegister({ userId }: Props) {
     setClosing(true)
     const supabase = createClient()
 
-    const totalCash = orders.filter((o) => o.payment_method === 'cash').reduce((acc, o) => acc + o.total, 0)
-    const totalCard = orders.filter((o) => o.payment_method === 'card').reduce((acc, o) => acc + o.total, 0)
+    // El pago compuesto reparte su total entre ambas columnas
+    const totalCash = orders.reduce((acc, o) => acc + cashPortion(o), 0)
+    const totalCard = orders.reduce((acc, o) => acc + cardPortion(o), 0)
     const totalRevenue = totalCash + totalCard
 
     await supabase
@@ -102,8 +105,9 @@ export default function CashRegister({ userId }: Props) {
     setClosing(false)
   }
 
-  const totalCash = orders.filter((o) => o.payment_method === 'cash').reduce((acc, o) => acc + o.total, 0)
-  const totalCard = orders.filter((o) => o.payment_method === 'card').reduce((acc, o) => acc + o.total, 0)
+  // El pago compuesto reparte su total entre ambas columnas
+    const totalCash = orders.reduce((acc, o) => acc + cashPortion(o), 0)
+  const totalCard = orders.reduce((acc, o) => acc + cardPortion(o), 0)
   const totalRevenue = totalCash + totalCard
 
   const diffCash = physicalCash ? parseFloat(physicalCash) - totalCash : null
@@ -390,10 +394,11 @@ export default function CashRegister({ userId }: Props) {
                 </div>
                 <div style={{
                   fontSize: 11,
-                  color: order.payment_method === 'cash' ? 'var(--success)' : 'var(--info)',
+                  // 'mixed' (pago compuesto) se muestra en color de advertencia
+                  color: order.payment_method === 'cash' ? 'var(--success)' : order.payment_method === 'mixed' ? 'var(--warning)' : 'var(--info)',
                   marginTop: 1,
                 }}>
-                  {order.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                  {paymentLabel(order.payment_method)}
                 </div>
               </div>
             </div>

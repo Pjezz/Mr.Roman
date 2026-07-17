@@ -14,6 +14,8 @@ owner: [
   { href: '/owner/costs',      label: 'Costos'     },
   { href: '/owner/menu',       label: 'Menú'       },
   { href: '/owner/zones',      label: 'Zonas'      },
+  // Servicios de delivery externos (PedidosYa, etc.) — solo owner
+  { href: '/owner/platforms',  label: 'Plataformas'},
   { href: '/owner/reports',    label: 'Reportes'   },
   { href: '/owner/cash',       label: 'Caja'       },
   { href: '/owner/users',      label: 'Usuarios'   },

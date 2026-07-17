@@ -34,7 +34,10 @@ export default function ClientSearch({ onClientFound, onCreateNew }: Props) {
         .select('client:clients(*, phones:client_phones(*), addresses:client_addresses(*, zone:zones(*)))')
         .eq('phone', clean)
         .single()
-      data = (phoneData?.client as Client | null) ?? null
+      // Cast vía unknown: Supabase infiere la relación como arreglo,
+      // pero la consulta devuelve un solo cliente. (Fix de compilación,
+      // este error existía antes de los cambios de este PR.)
+      data = (phoneData?.client as unknown as Client | null) ?? null
     }
 
     if (!data) {

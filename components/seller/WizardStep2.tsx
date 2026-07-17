@@ -6,6 +6,9 @@ import { useOrderStore, OrderItemDraft, OrderExtra } from '@/lib/store/orderStor
 import { calculateDeliveryFee, meetsZoneMinimum } from '@/lib/utils/delivery'
 import { createClient } from '@/lib/supabase/client'
 import ExtrasSelector from './ExtrasSelector'
+// Ofertas habilitadas por el owner: se aplican POR ITEM al agregarlo
+import { fetchEnabledOffers, findOfferForProduct, calcDiscountPerUnit } from '@/lib/offers'
+import { Offer } from '@/types'
 
 // Qué categorías de pizza permite cada combo
 const COMBO_PIZZA_RULES: Record<string, ProductCategory[]> = {
@@ -68,6 +71,8 @@ export default function WizardStep2() {
   const [comboStep, setComboStep] = useState<'pizza' | 'drink'>('pizza')
   const [currentPizzaSlot, setCurrentPizzaSlot] = useState(0)
   const [pizzaExtras, setPizzaExtras] = useState<OrderExtra[][]>([])
+  // Ofertas habilitadas por el owner (para aplicar descuentos por item)
+  const [offers, setOffers] = useState<Offer[]>([])
 
   useEffect(() => {
     async function fetchProducts() {
@@ -82,7 +87,22 @@ export default function WizardStep2() {
       setLoadingProducts(false)
     }
     fetchProducts()
+    // Cargamos también las ofertas habilitadas. Si la tabla no existe
+    // todavía (Supabase sin conectar), simplemente no habrá descuentos.
+    fetchEnabledOffers().then(setOffers).catch(() => setOffers([]))
   }, [])
+
+  /**
+   * Calcula la oferta y el descuento POR UNIDAD para un producto.
+   * Se usa al agregar items normales y combos: el descuento SIEMPRE
+   * cae sobre el item individual (si el combo tiene oferta, se
+   * descuenta del precio unitario del combo, no de la orden entera).
+   */
+  function offerFor(product: Product): { offer: Offer | null; discount: number } {
+    const offer = findOfferForProduct(offers, product.id)
+    if (!offer) return { offer: null, discount: 0 }
+    return { offer, discount: calcDiscountPerUnit(offer, product) }
+  }
 
   const CATEGORY_ORDER: ProductCategory[] = [
     'pizza_40', 'pizza_specialty', 'pizza_premium',
@@ -165,12 +185,18 @@ export default function WizardStep2() {
     // Agregar el combo como un item
     const extrasTotal = pizzaExtras.flat().reduce((acc, e) => acc + e.extra_price, 0)
 
+    // Si el owner creó una oferta para este combo, el descuento se
+    // aplica al precio unitario del combo (item individual)
+    const { offer, discount } = offerFor(selectedProduct)
+
     const item: OrderItemDraft = {
       product: selectedProduct,
       quantity: 1,
       unit_price: selectedProduct.price,
       extras: pizzaExtras.flat(),
       extras_total: extrasTotal,
+      offer,
+      discount_per_unit: discount,
       // Guardamos info del combo en el nombre para mostrar en el ticket
     }
 
@@ -194,12 +220,17 @@ export default function WizardStep2() {
 
     const extrasTotal = currentExtras.reduce((acc, e) => acc + e.extra_price, 0) * quantity
 
+    // Oferta habilitada para este producto (descuento por unidad)
+    const { offer, discount } = offerFor(selectedProduct)
+
     const item: OrderItemDraft = {
       product: selectedProduct,
       quantity,
       unit_price: selectedProduct.price,
       extras: currentExtras,
       extras_total: extrasTotal,
+      offer,
+      discount_per_unit: discount,
     }
 
     addItem(item)
@@ -516,8 +547,15 @@ export default function WizardStep2() {
                     + {item.extras.map((e) => e.ingredient.name).join(', ')}
                   </div>
                 )}
+                {/* Si el item tiene oferta se muestra el descuento aplicado */}
+                {item.discount_per_unit > 0 && (
+                  <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 2 }}>
+                    Oferta: {item.offer?.name} (−Q{(item.discount_per_unit * item.quantity).toFixed(2)})
+                  </div>
+                )}
                 <div style={{ fontSize: 12, color: 'var(--accent)', fontFamily: "'JetBrains Mono', monospace", marginTop: 3 }}>
-                  Q{(item.unit_price * item.quantity + item.extras_total).toFixed(2)}
+                  {/* Precio con el descuento por unidad ya aplicado */}
+                  Q{((item.unit_price - item.discount_per_unit) * item.quantity + item.extras_total).toFixed(2)}
                 </div>
               </div>
               <button onClick={() => handleRemoveItem(index)} style={{ fontSize: 11, color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
